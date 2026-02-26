@@ -23,3 +23,11 @@ app.include_router(venta.router, dependencies=[Depends(verificar_api_key)])
 app.include_router(detalle_venta.router, dependencies=[Depends(verificar_api_key)])
 app.include_router(deuda.router, dependencies=[Depends(verificar_api_key)])
 app.include_router(pago.router, dependencies=[Depends(verificar_api_key)])
+
+@app.api_route("/", methods=["GET", "HEAD"])
+def root():
+    return {"mensaje": "API activa"}
+
+@app.api_route("/health", methods=["GET", "HEAD"])
+def health():
+    return {"status": "ok"}
