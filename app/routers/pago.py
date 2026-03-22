@@ -3,67 +3,46 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.database import get_db
-from app.models.deuda import Deuda
-from app.schemas.deuda import DeudaCreate, DeudaUpdate, DeudaResponse
+from app.models.pago import Pago
+from app.schemas.pago import PagoCreate, PagoUpdate, PagoResponse
 
-router = APIRouter(prefix="/deudas", tags=["Deudas"])
+router = APIRouter(prefix="/pagos", tags=["Pagos"])
 
-
-@router.post("/", response_model=DeudaResponse)
-def crear_deuda(datos: DeudaCreate, db: Session = Depends(get_db)):
-
-    nueva = Deuda(**datos.dict())
-
-    db.add(nueva)
+@router.post("/", response_model=PagoResponse)
+def crear_pago(datos: PagoCreate, db: Session = Depends(get_db)):
+    nuevo = Pago(**datos.dict())
+    db.add(nuevo)
     db.commit()
-    db.refresh(nueva)
+    db.refresh(nuevo)
+    return nuevo
 
-    return nueva
+@router.get("/", response_model=List[PagoResponse])
+def obtener_pagos(db: Session = Depends(get_db)):
+    return db.query(Pago).all()
 
+@router.get("/{id}", response_model=PagoResponse)
+def obtener_pago(id: int, db: Session = Depends(get_db)):
+    pago = db.query(Pago).filter(Pago.id == id).first()
+    if not pago:
+        raise HTTPException(status_code=404, detail="Pago no encontrado")
+    return pago
 
-@router.get("/", response_model=List[DeudaResponse])
-def obtener_deudas(db: Session = Depends(get_db)):
-
-    return db.query(Deuda).all()
-
-
-@router.get("/{id}", response_model=DeudaResponse)
-def obtener_deuda(id: int, db: Session = Depends(get_db)):
-
-    deuda = db.query(Deuda).filter(Deuda.id == id).first()
-
-    if not deuda:
-        raise HTTPException(status_code=404, detail="Deuda no encontrada")
-
-    return deuda
-
-
-@router.put("/{id}", response_model=DeudaResponse)
-def actualizar_deuda(id: int, datos: DeudaUpdate, db: Session = Depends(get_db)):
-
-    deuda = db.query(Deuda).filter(Deuda.id == id).first()
-
-    if not deuda:
-        raise HTTPException(status_code=404, detail="Deuda no encontrada")
-
+@router.put("/{id}", response_model=PagoResponse)
+def actualizar_pago(id: int, datos: PagoUpdate, db: Session = Depends(get_db)):
+    pago = db.query(Pago).filter(Pago.id == id).first()
+    if not pago:
+        raise HTTPException(status_code=404, detail="Pago no encontrado")
     for key, value in datos.dict(exclude_unset=True).items():
-        setattr(deuda, key, value)
-
+        setattr(pago, key, value)
     db.commit()
-    db.refresh(deuda)
-
-    return deuda
-
+    db.refresh(pago)
+    return pago
 
 @router.delete("/{id}")
-def eliminar_deuda(id: int, db: Session = Depends(get_db)):
-
-    deuda = db.query(Deuda).filter(Deuda.id == id).first()
-
-    if not deuda:
-        raise HTTPException(status_code=404, detail="Deuda no encontrada")
-
-    db.delete(deuda)
+def eliminar_pago(id: int, db: Session = Depends(get_db)):
+    pago = db.query(Pago).filter(Pago.id == id).first()
+    if not pago:
+        raise HTTPException(status_code=404, detail="Pago no encontrado")
+    db.delete(pago)
     db.commit()
-
-    return {"mensaje": "Deuda eliminada"}
+    return {"mensaje": "Pago eliminado"}
