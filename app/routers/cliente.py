@@ -5,6 +5,8 @@ from typing import List
 from app.database import get_db
 from app.models.cliente import Cliente
 from app.schemas.cliente import ClienteCreate, ClienteUpdate, ClienteResponse
+from app.models.venta import Venta
+from app.models.deuda import Deuda
 
 router = APIRouter(prefix="/clientes", tags=["Clientes"])
 
@@ -57,13 +59,16 @@ def actualizar_cliente(id: int, datos: ClienteUpdate, db: Session = Depends(get_
 
 @router.delete("/{id}")
 def eliminar_cliente(id: int, db: Session = Depends(get_db)):
-
     cliente = db.query(Cliente).filter(Cliente.id == id).first()
-
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
 
+    tiene_ventas = db.query(Venta).filter(Venta.id_cliente == id).first()
+    tiene_deudas = db.query(Deuda).filter(Deuda.id_cliente == id).first()
+    if tiene_ventas or tiene_deudas:
+        raise HTTPException(status_code=409,
+            detail="No se puede eliminar: el cliente tiene ventas o deudas registradas")
+
     db.delete(cliente)
     db.commit()
-
     return {"mensaje": "Cliente eliminado"}

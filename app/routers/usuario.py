@@ -5,6 +5,7 @@ from typing import List
 from app.database import get_db
 from app.models.usuario import Usuario
 from app.schemas.usuario import UsuarioCreate, UsuarioUpdate, UsuarioResponse
+from app.models.venta import Venta  
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
@@ -57,13 +58,32 @@ def actualizar_usuario(id: int, datos: UsuarioUpdate, db: Session = Depends(get_
 
 @router.delete("/{id}")
 def eliminar_usuario(id: int, db: Session = Depends(get_db)):
-
     usuario = db.query(Usuario).filter(Usuario.id == id).first()
-
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
+    # Verificar si tiene ventas registradas
+    tiene_ventas = db.query(Venta).filter(Venta.id_usuario == id).first()
+    if tiene_ventas:
+        raise HTTPException(
+            status_code=409,
+            detail="No se puede eliminar el usuario porque tiene ventas registradas"
+        )
+
     db.delete(usuario)
     db.commit()
-
     return {"mensaje": "Usuario eliminado"}
+
+@router.post("/", response_model=UsuarioResponse)
+def crear_usuario(datos: UsuarioCreate, db: Session = Depends(get_db)):
+    
+    # Verificar si ya existe
+    existente = db.query(Usuario).filter(Usuario.usuario == datos.usuario).first()
+    if existente:
+        raise HTTPException(status_code=409, detail="El usuario ya existe")
+    
+    nuevo = Usuario(**datos.dict())
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+    return nuevo

@@ -5,6 +5,8 @@ from app.security import verificar_api_key
 from app.models.producto import Producto
 from app.models.venta import Venta
 from app.models.cliente import Cliente
+from app.models.usuario import Usuario as UsuarioModel
+from fastapi import HTTPException
 
 from app.routers import (
     usuario,
@@ -58,3 +60,21 @@ def root():
 @app.head("/health", include_in_schema=False)
 def health():
     return {"status": "ok"}
+
+    from app.models.usuario import Usuario
+
+@app.post("/login", tags=["Auth"])
+def login(datos: dict, db: Session = Depends(get_db)):
+    usuario = db.query(UsuarioModel).filter(
+        UsuarioModel.usuario == datos["usuario"],
+        UsuarioModel.contraseña == datos["contraseña"]
+    ).first()
+    
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+    
+    return {
+        "id": usuario.id,
+        "usuario": usuario.usuario,
+        "rol": usuario.rol
+    }

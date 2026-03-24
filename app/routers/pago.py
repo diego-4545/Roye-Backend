@@ -10,11 +10,22 @@ router = APIRouter(prefix="/pagos", tags=["Pagos"])
 
 @router.post("/", response_model=PagoResponse)
 def crear_pago(datos: PagoCreate, db: Session = Depends(get_db)):
+    from app.models.deuda import Deuda
+    deuda = db.query(Deuda).filter(Deuda.id == datos.id_deuda).first()
+    if not deuda:
+        raise HTTPException(status_code=404, detail="Deuda no encontrada")
+
+    if datos.cantidad > deuda.pendiente:
+        raise HTTPException(status_code=400, detail="El pago supera el saldo pendiente")
+
+    deuda.pendiente = deuda.pendiente - datos.cantidad
+
     nuevo = Pago(**datos.dict())
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)
     return nuevo
+
 
 @router.get("/", response_model=List[PagoResponse])
 def obtener_pagos(db: Session = Depends(get_db)):
