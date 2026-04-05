@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from decimal import Decimal
+from typing import Optional
 
 
 class ProductoBase(BaseModel):
@@ -11,6 +12,7 @@ class ProductoBase(BaseModel):
     precio_compra: Decimal
     precio_venta: Decimal
     stock: int
+    imagen: Optional[str] = None  
 
 
 class ProductoCreate(ProductoBase):
@@ -18,14 +20,15 @@ class ProductoCreate(ProductoBase):
 
 
 class ProductoUpdate(BaseModel):
-    id_original: str | None = None
-    nombre: str | None = None
-    id_categoria: int | None = None
-    peso: str | None = None
-    material: str | None = None
-    precio_compra: Decimal | None = None
-    precio_venta: Decimal | None = None
-    stock: int | None = None
+    id_original: Optional[str] = None
+    nombre: Optional[str] = None
+    id_categoria: Optional[int] = None
+    peso: Optional[str] = None
+    material: Optional[str] = None
+    precio_compra: Optional[Decimal] = None
+    precio_venta: Optional[Decimal] = None
+    stock: Optional[int] = None
+    imagen: Optional[str] = None  
 
 
 class ProductoResponse(ProductoBase):
