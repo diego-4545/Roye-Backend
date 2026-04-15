@@ -4,15 +4,14 @@ from typing import List
 
 from app.database import get_db
 from app.models.pago import Pago
+from app.models.deuda import Deuda  
 from app.models.detalle_venta import DetalleVenta
 from app.schemas.pago import PagoCreate, PagoUpdate, PagoResponse
 
 router = APIRouter(prefix="/pagos", tags=["Pagos"])
 
-@router.post("/pagos/")
+@router.post("/")
 def crear_pago(pago_data: PagoCreate, db: Session = Depends(get_db)):
-    # ... código existente de validación ...
-    
     detalle_venta = db.query(DetalleVenta).filter(
         DetalleVenta.id == pago_data.id_detalle_venta
     ).first()
@@ -20,23 +19,28 @@ def crear_pago(pago_data: PagoCreate, db: Session = Depends(get_db)):
     if not detalle_venta:
         raise HTTPException(status_code=404, detail="Detalle de venta no encontrado")
     
+    # Validar que no supere el subtotal del producto
     subtotal = detalle_venta.precio * detalle_venta.cantidad
     if detalle_venta.monto_pagado + pago_data.cantidad > subtotal:
         raise HTTPException(status_code=400, detail="El pago supera el total del producto")
     
-    deuda = db.query(Deuda).filter(
-        Deuda.id_venta == detalle_venta.id_venta
-    ).first()
+    # Buscar la deuda asociada a esta venta
+    deuda = db.query(Deuda).filter(Deuda.id_venta == detalle_venta.id_venta).first()
     
-    if deuda:
-        if deuda.pendiente >= pago_data.cantidad:
-            deuda.pendiente -= pago_data.cantidad
-        else:
-            raise HTTPException(status_code=400, detail="El pago supera la deuda pendiente")
+    # Validar que el pago no supere la deuda pendiente
+    if deuda and deuda.pendiente < pago_data.cantidad:
+        raise HTTPException(status_code=400, detail="El pago supera la deuda pendiente")
     
+    # Crear pago
+    nuevo_pago = Pago(**pago_data.dict())
+    
+    # Actualizar monto_pagado del detalle de venta
     detalle_venta.monto_pagado += pago_data.cantidad
     
-    nuevo_pago = Pago(**pago_data.dict())
+    # Actualizar pendiente de la deuda si existe
+    if deuda:
+        deuda.pendiente -= pago_data.cantidad
+    
     db.add(nuevo_pago)
     db.commit()
     db.refresh(nuevo_pago)
