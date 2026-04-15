@@ -9,9 +9,10 @@ from app.schemas.pago import PagoCreate, PagoUpdate, PagoResponse
 
 router = APIRouter(prefix="/pagos", tags=["Pagos"])
 
-# En routes/pago.py o schemas/pago.py
-@router.post("/")
+@router.post("/pagos/")
 def crear_pago(pago_data: PagoCreate, db: Session = Depends(get_db)):
+    # ... código existente de validación ...
+    
     detalle_venta = db.query(DetalleVenta).filter(
         DetalleVenta.id == pago_data.id_detalle_venta
     ).first()
@@ -19,17 +20,23 @@ def crear_pago(pago_data: PagoCreate, db: Session = Depends(get_db)):
     if not detalle_venta:
         raise HTTPException(status_code=404, detail="Detalle de venta no encontrado")
     
-    # Validar que no supere el subtotal del producto
     subtotal = detalle_venta.precio * detalle_venta.cantidad
     if detalle_venta.monto_pagado + pago_data.cantidad > subtotal:
         raise HTTPException(status_code=400, detail="El pago supera el total del producto")
     
-    # Crear pago
-    nuevo_pago = Pago(**pago_data.dict())
+    deuda = db.query(Deuda).filter(
+        Deuda.id_venta == detalle_venta.id_venta
+    ).first()
     
-    # Actualizar monto_pagado
+    if deuda:
+        if deuda.pendiente >= pago_data.cantidad:
+            deuda.pendiente -= pago_data.cantidad
+        else:
+            raise HTTPException(status_code=400, detail="El pago supera la deuda pendiente")
+    
     detalle_venta.monto_pagado += pago_data.cantidad
     
+    nuevo_pago = Pago(**pago_data.dict())
     db.add(nuevo_pago)
     db.commit()
     db.refresh(nuevo_pago)
