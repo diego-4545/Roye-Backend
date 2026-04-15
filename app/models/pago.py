@@ -8,7 +8,7 @@ class Pago(Base):
     __tablename__ = "pagos"
     
     id = Column(Integer, primary_key=True, index=True)
-    id_detalle_venta = Column(Integer, ForeignKey("detalle_ventas.id"))  # ← CAMBIAR de id_deuda
+    id_detalle_venta = Column(Integer, ForeignKey("detalle_ventas.id"))  
     fecha = Column(DateTime, default=datetime.utcnow)
     cantidad = Column(Numeric(10,2))
     tipo_pago = Column(Integer)
