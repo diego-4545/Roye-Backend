@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 class PagoBase(BaseModel):
-    id_deuda: int
+    id_detalle_venta: int
     cantidad: Decimal
     tipo_pago: int
 
